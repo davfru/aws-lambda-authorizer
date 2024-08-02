@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: DynamoDB tables
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+
+Resources:
+
+  OtpTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Env}-one-time-password
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: receiver  # customer email or phonenumber
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: receiver
+          KeyType: HASH
+        - AttributeName: createdAt
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expiration
+        Enabled: 'TRUE'
+
+  RefreshTokenTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${Env}-refresh-token
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+Outputs:
+
+  OtpTableName:
+    Description: Otp table name
+    Value: !Ref OtpTable
+  OtpTableArn:
+    Description: Otp table ARN
+    Value: !GetAtt OtpTable.Arn
+  RefreshTokenTableName:
+    Description: RefreshToken table name
+    Value: !Ref RefreshTokenTable
+  RefreshTokenTableArn:
+    Description: RefreshToken table ARN
+    Value: !GetAtt RefreshTokenTable.Arn

@@ -1,0 +1,349 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Back office APIs
+Transform:
+- AWS::Serverless-2016-10-31
+
+Globals:
+  Api:
+    Cors:
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
+  Function:
+    Timeout: 30
+    Environment:
+      Variables:
+        REGION: !Ref Region
+        
+Parameters:
+  Env:
+    Type: String
+  Region:
+    Default: eu-central-1
+    Type: String
+  Secrets:
+    Type: String
+  UserPoolArn:
+    Type: String
+  UserPoolId:
+    Type: String
+  UserPoolClientId:
+    Type: String
+  OtpTableArn:
+    Type: String
+  OtpTableName:
+    Type: String
+  RefreshTokenTableArn:
+    Type: String
+  RefreshTokenTableName:
+    Type: String
+  EmailSender:
+    Type: String
+  SaasDomain:
+    Type: String
+  JwtPrivateKey:
+    Type: String
+
+
+Resources:
+
+  ###############
+  # API GATEWAY #
+  ###############
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Env
+      Auth:
+        ApiKeyRequired: true
+        Authorizers:
+          LambdaTokenAuthorizer: # 'Authorization' header is not mentioned but it's default
+            FunctionArn: !GetAtt LambdaAuthorizer.Arn
+  
+  ApiKey: 
+    Type: AWS::ApiGateway::ApiKey
+    DependsOn:
+      - ApiUsagePlan
+    Properties: 
+      Name: !Join ["", [{"Ref": "AWS::StackName"}, "-apikey"]]
+      Description: "CloudFormation API Key for API"
+      Enabled: true
+      StageKeys:
+        - RestApiId: !Ref ApiGateway
+          StageName: !Ref Env
+ 
+  ApiUsagePlan:
+    Type: "AWS::ApiGateway::UsagePlan"
+    DependsOn:
+      - ApiGatewayStage
+    Properties:
+      ApiStages: 
+        - ApiId: !Ref ApiGateway
+          Stage: !Ref Env
+      Description: !Join [" ", [{"Ref": "AWS::StackName"}, "usage plan"]]
+      UsagePlanName: !Join ["", [{"Ref": "AWS::StackName"}, "-usage-plan"]]
+
+  ApiUsagePlanKey:
+    Type: "AWS::ApiGateway::UsagePlanKey"
+    DependsOn:
+      - ApiGateway
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref ApiUsagePlan
+
+  ##############
+  # AUTHORIZER #
+  ##############
+
+  LambdaAuthorizer:
+    Type: AWS::Serverless::Function
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: false
+        EntryPoints:
+        - app.ts
+    Properties:
+      Handler: app.lambdaHandler
+      CodeUri: authorizer/
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Description: Lambda authorizer to allow or deny incoming requests to API Gateway
+      Environment:
+        Variables:
+          REGION: !Ref Region
+          USER_POOL_ID: !Ref UserPoolId 
+          USER_POOL_CLIENT_ID: !Ref UserPoolClientId
+          SECRET: !Ref Secrets
+          JWT_SECRET_KEY: !Ref JwtPrivateKey
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref Secrets
+
+  LambdaAuthorizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join [ "", [ "/aws/lambda/", !Ref LambdaAuthorizer] ]
+      RetentionInDays: 30
+
+  AuthorizerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaAuthorizer.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  ##########
+  # LAMBDA #
+  ##########
+
+  AuthServiceApi:
+    Type: AWS::Serverless::Function
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: false
+        EntryPoints:
+        - app.ts
+    Properties:
+      Handler: app.lambdaHandler
+      CodeUri: auth-service/
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Description: REST API to authenticate the user
+      Environment:
+        Variables:
+          ENV: !Ref Env
+          USER_POOL_ID: !Ref UserPoolId
+          USER_POOL_CLIENT_ID: !Ref UserPoolClientId
+          REFRESH_TOKEN_TABLE_NAME: !Ref RefreshTokenTableName
+          SECRET: !Ref Secrets
+          JWT_SECRET_KEY: !Ref JwtPrivateKey
+      Events:
+        PreSignUp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/pre-sign-up
+            Method: GET
+            Auth:
+              ApiKeyRequired: true
+              # Authorizer: LambdaTokenAuthorizer (no needed)
+        SignUp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/sign-up
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: LambdaTokenAuthorizer 
+        SignIn:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /auth/sign-in
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              # Authorizer: LambdaTokenAuthorizer (no needed)
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: cognito-idp:ListUsers
+            Resource: !Ref UserPoolArn
+          - Effect: Allow
+            Action: dynamodb:PutItem
+            Resource: !Ref RefreshTokenTableArn
+          - Effect: Allow
+            Action: cognito-idp:AdminSetUserPassword # needed to activate user
+            Resource: !Ref UserPoolArn
+          - Effect: Allow
+            Action: cognito-idp:AdminCreateUser
+            Resource: !Ref UserPoolArn
+          - Effect: Allow
+            Action: cognito-idp:AdminInitiateAuth # neeeded to login
+            Resource: !Ref UserPoolArn
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref Secrets
+
+  AuthServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join [ "", [ "/aws/lambda/", !Ref AuthServiceApi] ]
+      RetentionInDays: 30
+
+  ###
+
+  OtpServiceApi:
+    Type: AWS::Serverless::Function
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: false
+        EntryPoints:
+        - app.ts
+    Properties:
+      Handler: app.lambdaHandler
+      CodeUri: otp-service/
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Description: REST API that allows receive and verify OTP
+      Environment:
+        Variables:
+          ENV: !Ref Env
+          SECRET: !Ref Secrets
+          JWT_SECRET_KEY: !Ref JwtPrivateKey
+          OTP_TABLE_NAME: !Ref OtpTableName
+          EMAIL_SENDER: !Ref EmailSender
+      Events:
+        SendOtp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /otp/send
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              # Authorizer: LambdaTokenAuthorizer (no needed)
+        VerifyOtp:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /otp/verify
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              # Authorizer: LambdaTokenAuthorizer (no needed)
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action: 
+              - dynamodb:PutItem
+              - dynamodb:Query
+            Resource: !Ref OtpTableArn
+          - Effect: Allow
+            Action: 
+              - ses:SendEmail
+            Resource: '*'
+          - Effect: Allow
+            Action: secretsmanager:GetSecretValue
+            Resource: !Ref Secrets
+
+  OtpServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join [ "", [ "/aws/lambda/", !Ref OtpServiceApi] ]
+      RetentionInDays: 30
+      
+  ###
+
+  CustomerServiceApi:
+    Type: AWS::Serverless::Function
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: false
+        EntryPoints:
+        - app.ts
+    Properties:
+      Handler: app.lambdaHandler
+      CodeUri: customer-service/
+      Runtime: nodejs20.x
+      Architectures:
+      - x86_64
+      Description: REST API to handler customer appointments, profile, etc..
+      Environment:
+        Variables:
+          ENV: !Ref Env
+      Events:
+        CreateAppointment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /customers/appointments
+            Method: POST
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: LambdaTokenAuthorizer
+        ListAppointment:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /customers/appointments
+            Method: GET
+            Auth:
+              ApiKeyRequired: true
+              Authorizer: LambdaTokenAuthorizer
+
+  CustomerServiceLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: !Join [ "", [ "/aws/lambda/", !Ref CustomerServiceApi] ]
+      RetentionInDays: 30
+
+  ###
+
+Outputs:
+  WebEndpoint:
+    Description: "API Gateway endpoint URL for ${Env} stage. Use this url as base path on web client side"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${Env}/"
+  ApiKey:
+    Description: "Run the following command to retrieve the value for x-api-key header you must set in the request in order to access the APIs defined in this template"
+    Value: !Sub "aws apigateway get-api-key --api-key ${ApiKey.APIKeyId} --include-value --query \"value\" --output text --region eu-central-1"

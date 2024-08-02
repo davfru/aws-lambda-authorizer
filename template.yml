@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  SaaS backend layer starter
+Globals:
+  Function:
+    Timeout: 30
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: saas-backend
+  Env:
+    Type: String
+    Description: dev|test|prod
+  UserPoolDomainName:
+    Type: String
+    Description: Domain name for user pool
+  UserPoolName:
+    Type: String
+    Description: User pool name
+  EmailSender:
+    Type: String
+  SaasDomain:
+    Type: String
+  JwtPrivateKey:
+    Type: String
+
+Resources:
+
+  Cognito:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./iac/cognito.yaml
+      Parameters:
+        UserPoolDomainName: !Ref UserPoolDomainName
+        UserPoolName: !Ref UserPoolName
+        Env: !Ref Env
+
+  DynamoDB:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./iac/dynamodb.yaml
+      Parameters:
+        Env: !Ref Env
+
+  SecretManager:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./iac/secrets.yaml
+      Parameters:
+        Env: !Ref Env
+
+  Api:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./api/api.yaml
+      Parameters:
+        Env: !Ref Env
+        Secrets: !GetAtt SecretManager.Outputs.Secrets
+        UserPoolArn: !GetAtt Cognito.Outputs.UserPoolArn
+        UserPoolId: !GetAtt Cognito.Outputs.UserPoolId
+        UserPoolClientId: !GetAtt Cognito.Outputs.UserPoolClient
+        OtpTableName: !GetAtt DynamoDB.Outputs.OtpTableName
+        OtpTableArn: !GetAtt DynamoDB.Outputs.OtpTableArn
+        RefreshTokenTableName: !GetAtt DynamoDB.Outputs.RefreshTokenTableName
+        RefreshTokenTableArn: !GetAtt DynamoDB.Outputs.RefreshTokenTableArn
+        EmailSender: !Ref EmailSender
+        SaasDomain: !Ref SaasDomain
+        JwtPrivateKey: !Ref JwtPrivateKey

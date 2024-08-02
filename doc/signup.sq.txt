@@ -1,0 +1,16 @@
+title Sign up with temporary credentials
+
+actor customer
+
+customer -> otp-service: POST /otp/send
+otp-service -> aws-dynamo: generate and persist OTP
+otp-service -> aws-ses: send otp
+aws-ses -> customer: send the OTP via email with AWS SES
+customer -> otp-service: POST /otp/verify
+alt OTP not valid
+otp-service -> customer: return 403
+else
+otp-service -> otp-service: generate JWT
+otp-service -> customer: return JWT
+customer -> auth-service: POST /auth/sign-up
+end

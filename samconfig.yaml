@@ -1,0 +1,27 @@
+version: 1.0
+
+.common_params: &common_params
+  resolve_s3: true
+  region: 'eu-central-1'
+  confirm_changeset: 'true'
+  capabilities: 'CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM'
+  image_repositories: []
+
+dev:
+  deploy:
+    parameters:
+      <<: *common_params
+      s3_prefix: 'dev-custom-lambda-authorizer'
+      stack_name: 'dev-custom-lambda-authorizer'
+      confirm_changeset: 'false'
+      parameter_overrides:
+        - Env="dev"
+        - ProjectName="dev-custom-lambda-authorizer"
+        - UserPoolDomainName="dev-custom-lambda-authorizer"
+        - UserPoolName="dev-custom-lambda-authorizer" 
+        - SaasDomain="DevCustomAuthorizerDomain" 
+        - EmailSender="email@gmail.com" 
+        - JwtPrivateKey="jwtPrivateKey"
+      tags:
+        - 'Environment=dev'
+        - 'ProjectName=custom-lambda-authorizer'

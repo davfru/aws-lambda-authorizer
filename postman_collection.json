@@ -1,0 +1,361 @@
+{
+	"info": {
+		"_postman_id": "6cc30e66-8cf1-4732-8bd5-a9edce004d97",
+		"name": "AWS lambda authorizer",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "1893158"
+	},
+	"item": [
+		{
+			"name": "auth-service",
+			"item": [
+				{
+					"name": "pre sign up",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImRhdmlkZS5mcnVjaUBnbWFpbC5jb20iLCJpYXQiOjE3MDk4MDE5MDMsImV4cCI6MTcwOTgwNTUwM30.aXzZAXww83EJYnnkQbJL9z_oDhvNJCUFlgvUc42aGWc",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{basepath}}/auth/pre-sign-up?email=davide.fruci@gmail.com",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"auth",
+								"pre-sign-up"
+							],
+							"query": [
+								{
+									"key": "email",
+									"value": "davide.fruci@gmail.com"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoiZGF2aWRlLmZydWNpQGdtYWlsLmNvbSIsImlhdCI6MTcxOTE1NDQ5MSwiZXhwIjoxNzE5MTU4MDkxfQ.bqQ7KHbHUFkUYbGtTodlAUSIRRj8ddE3Ji41SPnOqYs",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"password\": \"Password123!\",\n    \"role\": \"admin\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/auth/sign-up",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"auth",
+								"sign-up"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "signin",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Success', () => {",
+									"    const responseBody = pm.response.json();",
+									"    if (responseBody && responseBody.IdToken !== undefined) {",
+									"        const idToken = responseBody.IdToken;",
+									"        console.log(\"*** \", idToken)",
+									"        pm.environment.set(\"idToken\", idToken);",
+									"    }",
+									"})"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"davide.fruci@gmail.com\",\n    \"password\": \"Password123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/auth/sign-in",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"auth",
+								"sign-in"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "otp-service",
+			"item": [
+				{
+					"name": "send otp",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImRhdmlkZS5mcnVjaUBnbWFpbC5jb20iLCJpYXQiOjE3MDk4MDE5MDMsImV4cCI6MTcwOTgwNTUwM30.aXzZAXww83EJYnnkQbJL9z_oDhvNJCUFlgvUc42aGWc",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"receiver\": \"davide.fruci@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/otp/send",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"otp",
+								"send"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verify-otp",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImRhdmlkZS5mcnVjaUBnbWFpbC5jb20iLCJpYXQiOjE3MDk4MDE5MDMsImV4cCI6MTcwOTgwNTUwM30.aXzZAXww83EJYnnkQbJL9z_oDhvNJCUFlgvUc42aGWc",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"receiver\": \"davide.fruci@gmail.com\",\n    \"otp\": \"5462\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/otp/verify",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"otp",
+								"verify"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "customer-service",
+			"item": [
+				{
+					"name": "create appointment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJraWQiOiJZYmlsdlNqY3J3a1ZFYlFmdjFTY1wvSEJabGxoQ0xZeERneDV0RmtzVkd6TT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI1Mzc0ZjgxMi04MDgxLTcwMDUtYWIxYi0zZGVjOTBhNzVkYWIiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LWNlbnRyYWwtMS5hbWF6b25hd3MuY29tXC9ldS1jZW50cmFsLTFfVlJLYkRvODJUIiwiY29nbml0bzp1c2VybmFtZSI6IjUzNzRmODEyLTgwODEtNzAwNS1hYjFiLTNkZWM5MGE3NWRhYiIsIm9yaWdpbl9qdGkiOiJlYTdlZmFlMy02OWM5LTQxMzUtOGY4MS03YmRkY2NjYTNmYzYiLCJhdWQiOiIxcG1kNDhodGMzNnQ0YXJ0ZDJpYXNjMHN2biIsImV2ZW50X2lkIjoiMTFiZDYwNWEtNjJlZS00YzM5LTliMzYtZGEyZjk0NzVhZWU5IiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3MjI1MTMxNTMsImV4cCI6MTcyMjUxNjc1MywiY3VzdG9tOnJvbGUiOiJjdXN0b21lciIsImlhdCI6MTcyMjUxMzE1MywianRpIjoiOTUzNDNjZjUtYjg5NS00MGFjLWJlZjItYzA4MDFkYTgzNWY4IiwiZW1haWwiOiJkYXZpZGUuZnJ1Y2lAZ21haWwuY29tIn0.QKZlhdgezbKzN2MIVgupcI-MjYs0yhQSAdL9s6E5iJTgr8xaL4wPAslHxrKvsdzW3qsTEWzwM1_C0YeU6olii2f42wZXxxE2bPtB3Djxc_xg2zdau4D6ag4kjxU7seyP2OC_MAvAZgmnDDG_P1se5EJQlwrUsU7pvvt2Kkk8759YwHTZulhf_Hap8H7wa5dKwlsfIx2dOsVJZYnyUYG9oCZbLGHh_TWGRc4SM8De0nMfHvnXaD2lGNL2WE6SELWHw1-BdgTZmlsAri1x4V30Ner0sBYdEgSbMdm3JHF9HNyHkAUTX8qEEEv9TgHaP6eIJbdCuVNtlKIS25bSmIsK8w",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"shopId\": \"1\",\n    \"services\": [\"2\", \"3\"],\n    \"employeeId\": \"1\",\n    \"date\": \"2024-08-10\",\n    \"startAt\": \"10:00\",\n    \"endAt\": \"11:00\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/customers/appointments",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"customers",
+								"appointments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "list appointment",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer eyJraWQiOiJZYmlsdlNqY3J3a1ZFYlFmdjFTY1wvSEJabGxoQ0xZeERneDV0RmtzVkd6TT0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiI1Mzc0ZjgxMi04MDgxLTcwMDUtYWIxYi0zZGVjOTBhNzVkYWIiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmV1LWNlbnRyYWwtMS5hbWF6b25hd3MuY29tXC9ldS1jZW50cmFsLTFfVlJLYkRvODJUIiwiY29nbml0bzp1c2VybmFtZSI6IjUzNzRmODEyLTgwODEtNzAwNS1hYjFiLTNkZWM5MGE3NWRhYiIsIm9yaWdpbl9qdGkiOiI0YjM3N2NmNC03NTRjLTRjZjMtOWQwNC0zZDJmYTQxN2M3MWIiLCJhdWQiOiIxcG1kNDhodGMzNnQ0YXJ0ZDJpYXNjMHN2biIsImV2ZW50X2lkIjoiMGM2YjZiMTctZGZlYy00MTUxLWJjMTMtMDUwY2VmOTQ5N2ZhIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3MjI1MTI0NDQsImV4cCI6MTcyMjUxNjA0NCwiY3VzdG9tOnJvbGUiOiJjdXN0b21lciIsImlhdCI6MTcyMjUxMjQ0NCwianRpIjoiMjUwODg1YmEtYzBkNS00Y2M2LWFhMjItYTY1MDg0Y2UxNmY3IiwiZW1haWwiOiJkYXZpZGUuZnJ1Y2lAZ21haWwuY29tIn0.R_mWHFPP3jBRcM4Va0PTmi5siC4wmD370niEL59isDUD_CcVFx58qv5rSsHXNC5lvDF3xckRyiBkRm1CAKYnvm00meIxxRvI_y2gj5oNl79wwThScdUA46UN5APjtk2lY7sRDzIqGidGPt3Ydn2XSBqguGoKViGjbpwmJ4HgCgdJ-sQ7BbdiMoaoOzE1JxtI9d2Qjv4za-vDYD8PgF4kMnlMWrtxg5DI2RTJ-OeVII2P4vBz1nTA54mA5qBgIHT20-Mjf-iJOqjlUYvv1sHi6aUlaaoEzjh_gU2NGFpAG77d-bplMusImI_d06eknY71E0WHfBDl-RwfhsbG9yCs8g",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{basepath}}/customers/appointments?status=pending",
+							"host": [
+								"{{basepath}}"
+							],
+							"path": [
+								"customers",
+								"appointments"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "x-api-key",
+			"value": "5TretBBrBK1V9HMzVdMee2PM5ul5blXg7MybwjLX",
+			"type": "string"
+		},
+		{
+			"key": "basepath",
+			"value": "https://3dzvjy0ko8.execute-api.eu-central-1.amazonaws.com/dev",
+			"type": "string"
+		},
+		{
+			"key": "idToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

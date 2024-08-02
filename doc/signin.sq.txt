@@ -1,0 +1,11 @@
+title Sign In
+
+actor customer
+
+customer -> auth-service: POST /auth/sign-in
+auth-service -> aws-cognito: auth
+alt credential not valid
+auth-service -> customer: return 401
+else
+auth-service -> customer: return JWTs
+end

@@ -1,0 +1,11 @@
+title Lambda authorizer check
+
+actor customer
+
+customer -> aws-apigateway: GET /customers/appointments
+aws-apigateway -> authorizer: check Authorization header
+alt Authorization header missing or not valid
+authorizer -> customer: return 403
+else
+aws-apigateway -> customer-service: redirect request
+end
